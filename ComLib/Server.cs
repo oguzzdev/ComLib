@@ -2,6 +2,7 @@
 using System.Collections.Generic;
 using System.Linq;
 using System.Text;
+using System.Threading;
 using System.Threading.Tasks;
 using System.Net;
 using System.Net.Sockets;
@@ -69,7 +70,43 @@ namespace ComLib
                 client.ReceiveBufferSize = ServerBehavior.server_behavior.config.buffersize;
                 client.SendBufferSize = ServerBehavior.server_behavior.config.buffersize;
                 network_stream = client.GetStream();
-                //receive
+                byte[] buffer = new byte[client.ReceiveBufferSize];
+                network_stream.BeginRead(buffer, 0, buffer.Length, Receive, buffer);
+            }
+
+            private void Receive(IAsyncResult asyncResult)
+            {
+                int len = network_stream.EndRead(asyncResult);
+                if (len <= 0) { Disconnect(); return; }
+                byte[] buffer = asyncResult.AsyncState as byte[];
+                byte[] databuffer = new byte[len];
+                Array.Copy(buffer, databuffer, len);
+                //print
+                buffer = new byte[client.ReceiveBufferSize];
+                network_stream.BeginRead(buffer, 0, buffer.Length, Receive, buffer);
+            }
+
+            private List<byte[]> datas = new List<byte[]>();
+            private bool sending = false;
+            public void Send(byte[] data)
+            {
+                datas.Add(data);
+                if (!sending)
+                {
+                    sending = true;
+                    new Thread(new ThreadStart(_Send)).Start();
+                }
+
+                void _Send()
+                {
+                    while (datas.Count > 0)
+                    {
+                        network_stream.Write(datas[0], 0, datas[0].Length);
+                        datas.RemoveAt(0);
+                        //send
+                    }
+                    sending = false;
+                }
             }
 
             public void Disconnect()
