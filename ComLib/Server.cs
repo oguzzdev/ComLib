@@ -94,14 +94,18 @@ namespace ComLib
 
             private void _Receive(IAsyncResult asyncResult)
             {
-                int len = network_stream.EndRead(asyncResult);
-                if (len <= 0) { Disconnect(); return; }
-                byte[] buffer = asyncResult.AsyncState as byte[];
-                byte[] databuffer = new byte[len];
-                Array.Copy(buffer, databuffer, len);
-                server_behavior.Read(databuffer, this);
-                buffer = new byte[client.ReceiveBufferSize];
-                network_stream.BeginRead(buffer, 0, buffer.Length, _Receive, buffer);
+                try
+                {
+                    int len = network_stream.EndRead(asyncResult);
+                    if (len <= 0) { Disconnect(); return; }
+                    byte[] buffer = asyncResult.AsyncState as byte[];
+                    byte[] databuffer = new byte[len];
+                    Array.Copy(buffer, databuffer, len);
+                    server_behavior.Read(databuffer, this);
+                    buffer = new byte[client.ReceiveBufferSize];
+                    network_stream.BeginRead(buffer, 0, buffer.Length, _Receive, buffer);
+                }
+                catch { Disconnect(); }
             }
 
             public void Send(byte[] data)

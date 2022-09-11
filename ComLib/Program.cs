@@ -10,8 +10,20 @@ namespace ComLib
     {
         static void Main(string[] args)
         {
-            //Server server = new Server();
-            Client client = new Client();
+            Console.WriteLine("(Server -> s , Client -> c)");
+            Console.Write("> ");
+            string cmd = Console.ReadLine();
+            if(cmd == "s")
+            {
+                Server server = new Server();
+            }else if(cmd == "c")
+            {
+                Client client = new Client();
+            }
+            else
+            {
+                Console.WriteLine("Invalid command.");
+            }
             Console.ReadKey();
         }
     }
@@ -26,6 +38,7 @@ namespace ComLib
         protected override void Connected()
         {
             Console.WriteLine("Connected.");
+            Send(Encoding.Unicode.GetBytes("Hello Server!"));
         }
 
         protected override void Disconnected()
@@ -64,6 +77,7 @@ namespace ComLib
         protected override void Joined(Client client)
         {
             Console.WriteLine($"Client-{client.id} joined.");
+            client.Send(Encoding.Unicode.GetBytes("Hello Client!"));
         }
 
         protected override void Disconnected(Client client)
