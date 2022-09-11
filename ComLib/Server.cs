@@ -15,12 +15,18 @@ namespace ComLib
 
         protected Client[] clients;
 
-        protected Config config;
+        protected Config config = new Config();
         protected static ServerBehavior server_behavior;
 
+        protected virtual void Started() { }
+        protected virtual void Stoped() { }
+        protected virtual void Joined(Client client) { }
+        protected virtual void Disconnected(Client client) { }
+        protected virtual void Sent(byte[] data,Client client) { }
+        protected virtual void Read(byte[] data,Client client) { }
         public ServerBehavior()
         {
-            ServerBehavior.server_behavior = this;
+            server_behavior = this;
         }
 
         protected void Start()
@@ -31,6 +37,17 @@ namespace ComLib
             for (int i = 0; i < clients.Length; i++)
                 clients[i] = new Client(i);
             tcp_listener.BeginAcceptTcpClient(Accept, null);
+            Started();
+        }
+
+        protected void Stop()
+        {
+            for (int i = 0; i < clients.Length; i++)
+                clients[i].Disconnect();
+            clients = null;
+            tcp_listener.Stop();
+            tcp_listener = null;
+            Stop();
         }
 
         private void Accept(IAsyncResult asyncResult)
@@ -67,11 +84,12 @@ namespace ComLib
             public void Track(TcpClient client)
             {
                 this.client = client;
-                client.ReceiveBufferSize = ServerBehavior.server_behavior.config.buffersize;
-                client.SendBufferSize = ServerBehavior.server_behavior.config.buffersize;
+                client.ReceiveBufferSize = server_behavior.config.buffersize;
+                client.SendBufferSize = server_behavior.config.buffersize;
                 network_stream = client.GetStream();
                 byte[] buffer = new byte[client.ReceiveBufferSize];
                 network_stream.BeginRead(buffer, 0, buffer.Length, Receive, buffer);
+                server_behavior.Joined(this);
             }
 
             private void Receive(IAsyncResult asyncResult)
@@ -81,32 +99,16 @@ namespace ComLib
                 byte[] buffer = asyncResult.AsyncState as byte[];
                 byte[] databuffer = new byte[len];
                 Array.Copy(buffer, databuffer, len);
-                //print
+                server_behavior.Read(databuffer, this);
                 buffer = new byte[client.ReceiveBufferSize];
                 network_stream.BeginRead(buffer, 0, buffer.Length, Receive, buffer);
             }
 
-            private List<byte[]> datas = new List<byte[]>();
-            private bool sending = false;
             public void Send(byte[] data)
             {
-                datas.Add(data);
-                if (!sending)
-                {
-                    sending = true;
-                    new Thread(new ThreadStart(_Send)).Start();
-                }
-
-                void _Send()
-                {
-                    while (datas.Count > 0)
-                    {
-                        network_stream.Write(datas[0], 0, datas[0].Length);
-                        datas.RemoveAt(0);
-                        //send
-                    }
-                    sending = false;
-                }
+                network_stream.Write(data, 0, data.Length);
+                Thread.Sleep(server_behavior.config.delay);
+                server_behavior.Sent(data, this);
             }
 
             public void Disconnect()
@@ -114,6 +116,7 @@ namespace ComLib
                 client.Close();
                 network_stream.Close();
                 Reset();
+                server_behavior.Disconnected(this);
             }
 
             public void Reset()
@@ -128,9 +131,9 @@ namespace ComLib
         {
             public string ip = "127.0.0.1";
             public int port = 1234;
-            public string password = "psw123";
             public int client_capacity = 24;
             public int buffersize = 1024;
+            public int delay=1;
         }
     }
 }
