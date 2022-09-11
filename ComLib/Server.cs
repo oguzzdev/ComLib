@@ -6,11 +6,7 @@ using System.Threading.Tasks;
 
 namespace ComLib
 {
-    class Program
+    class Server
     {
-        static void Main(string[] args)
-        {
-            
-        }
     }
 }
