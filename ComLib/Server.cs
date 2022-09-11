@@ -36,7 +36,7 @@ namespace ComLib
             clients = new Client[config.client_capacity];
             for (int i = 0; i < clients.Length; i++)
                 clients[i] = new Client(i);
-            tcp_listener.BeginAcceptTcpClient(Accept, null);
+            tcp_listener.BeginAcceptTcpClient(_Accept, null);
             Started();
         }
 
@@ -50,7 +50,7 @@ namespace ComLib
             Stop();
         }
 
-        private void Accept(IAsyncResult asyncResult)
+        private void _Accept(IAsyncResult asyncResult)
         {
             TcpClient socket = tcp_listener.EndAcceptTcpClient(asyncResult);
             for (int i = 0; i < config.client_capacity; i++)
@@ -58,13 +58,13 @@ namespace ComLib
                 if (!clients[i].is_working)
                 {
                     clients[i].Track(socket);
-                    tcp_listener.BeginAcceptTcpClient(Accept, null);
+                    tcp_listener.BeginAcceptTcpClient(_Accept, null);
                     return;
                 }
             }
 
             socket.Close();
-            tcp_listener.BeginAcceptTcpClient(Accept, null);
+            tcp_listener.BeginAcceptTcpClient(_Accept, null);
             return;
         }
 
@@ -88,11 +88,11 @@ namespace ComLib
                 client.SendBufferSize = server_behavior.config.buffersize;
                 network_stream = client.GetStream();
                 byte[] buffer = new byte[client.ReceiveBufferSize];
-                network_stream.BeginRead(buffer, 0, buffer.Length, Receive, buffer);
+                network_stream.BeginRead(buffer, 0, buffer.Length, _Receive, buffer);
                 server_behavior.Joined(this);
             }
 
-            private void Receive(IAsyncResult asyncResult)
+            private void _Receive(IAsyncResult asyncResult)
             {
                 int len = network_stream.EndRead(asyncResult);
                 if (len <= 0) { Disconnect(); return; }
@@ -101,7 +101,7 @@ namespace ComLib
                 Array.Copy(buffer, databuffer, len);
                 server_behavior.Read(databuffer, this);
                 buffer = new byte[client.ReceiveBufferSize];
-                network_stream.BeginRead(buffer, 0, buffer.Length, Receive, buffer);
+                network_stream.BeginRead(buffer, 0, buffer.Length, _Receive, buffer);
             }
 
             public void Send(byte[] data)
