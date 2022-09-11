@@ -10,8 +10,37 @@ namespace ComLib
     {
         static void Main(string[] args)
         {
-            Server server = new Server();
+            //Server server = new Server();
+            Client client = new Client();
             Console.ReadKey();
+        }
+    }
+
+    class Client : ClientBehavior
+    {
+        public Client()
+        {
+            Connect();
+        }
+
+        protected override void Connected()
+        {
+            Console.WriteLine("Connected.");
+        }
+
+        protected override void Disconnected()
+        {
+            Console.WriteLine("Disconnected.");
+        }
+
+        protected override void Read(byte[] data)
+        {
+            Console.WriteLine($"Server > \"{Encoding.Unicode.GetString(data)}\"");
+        }
+
+        protected override void Sent(byte[] data)
+        {
+            Console.WriteLine($" > \"{Encoding.Unicode.GetString(data)}\"");
         }
     }
 

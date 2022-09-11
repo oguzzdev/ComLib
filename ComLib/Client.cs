@@ -16,6 +16,11 @@ namespace ComLib
 
         protected Config config = new Config();
 
+        protected virtual void Connected() { }
+        protected virtual void Disconnected() { }
+        protected virtual void Sent(byte[] data) { }
+        protected virtual void Read(byte[] data) { }
+
         protected void Connect()
         {
             client = new TcpClient();
@@ -27,6 +32,7 @@ namespace ComLib
             client.ReceiveBufferSize = config.buffersize;
             client.SendBufferSize = config.buffersize;
             network_stream = client.GetStream();
+            Connected();
             byte[] buffer = new byte[client.ReceiveBufferSize];
             network_stream.BeginRead(buffer, 0, buffer.Length, _Receive, buffer);
         }
@@ -38,7 +44,7 @@ namespace ComLib
             byte[] buffer = asyncResult.AsyncState as byte[];
             byte[] databuffer = new byte[len];
             Array.Copy(buffer, databuffer, len);
-            //print
+            Read(databuffer);
             buffer = new byte[client.ReceiveBufferSize];
             network_stream.BeginRead(buffer, 0, buffer.Length, _Receive, buffer);
         }
@@ -46,7 +52,7 @@ namespace ComLib
         {
             network_stream.Write(data, 0, data.Length);
             Thread.Sleep(config.delay);
-            //print
+            Sent(data);
         }
 
         protected void Disconnect()
@@ -55,6 +61,7 @@ namespace ComLib
             client = null;
             network_stream.Close();
             network_stream = null;
+            Disconnected();
         }
 
 
